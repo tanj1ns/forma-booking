@@ -23,12 +23,34 @@ const {
   hardenHttpServer
 } = require('./security');
 
+const {
+  initClientAccount,
+  handleClientApi
+} = require('./clientAccount');
+
 const PORT = Number(process.env.PORT) || 4001;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT_DIR = path.join(__dirname, '..');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 
+const CLIENT_ACCOUNT_CONFIG = {
+  prefix: 'forma',
+  ordersTable: null,
+  seed: {
+    name: 'Иван Петров',
+    email: 'client@forma-studio.ru',
+    phone: '+7 (926) 310-44-12',
+    password: process.env.DEMO_CLIENT_PASSWORD || 'client12345',
+    meta: {
+      favMaster: 'Артур Волков',
+      note: 'Классический фейд, эспрессо без сахара',
+      bookingCodes: ['FRM-1042']
+    }
+  }
+};
+
 const db = initDatabase();
+initClientAccount(db, CLIENT_ACCOUNT_CONFIG);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -172,6 +194,15 @@ async function handleApi(req, res, parsed) {
 
   const isSecure = req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV === 'production';
   const user = getSessionUser(db, req);
+
+  if (pathname.startsWith('/api/client/')) {
+    return handleClientApi(req, res, parsed, db, CLIENT_ACCOUNT_CONFIG, {
+      sendJson,
+      readJson,
+      loginLimiter,
+      isSecure
+    });
+  }
 
   if (method === 'GET' && pathname === '/api/bootstrap') {
     const services = db.prepare('SELECT * FROM services ORDER BY sort_order ASC, id ASC').all().map(mapService);

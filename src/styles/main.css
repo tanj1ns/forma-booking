@@ -184,8 +184,13 @@ button, input, select { font-family: inherit; }
 .cookie-banner__text { flex: 1 1 280px; font-size: 0.84rem; color: var(--text-muted); line-height: 1.5; }
 .cookie-banner__actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+.auth-layout { display: grid; grid-template-columns: 1fr 0.84fr; gap: 22px; align-items: start; }
+.demo-creds { display: flex; flex-direction: column; gap: 14px; }
+.demo-creds__box { padding: 14px; border: 1px solid var(--border-strong); border-radius: 2px; background: var(--bg); }
+.cab-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 24px; align-items: start; }
+
 @media (max-width: 900px) {
-  .hero-grid, .booking-layout, .masters-grid, .form-grid { grid-template-columns: 1fr; }
+  .hero-grid, .booking-layout, .masters-grid, .form-grid, .auth-layout, .cab-grid { grid-template-columns: 1fr; }
   .summary-card { position: static; }
 }
 

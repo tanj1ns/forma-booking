@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   SlidersHorizontal,
   RefreshCw,
+  User,
   XCircle
 } from 'lucide-react';
 import {
@@ -25,14 +26,32 @@ import {
   SERVICE_CATEGORIES,
   BOOKING_STATUS
 } from './api.js';
+import { createClientAuth } from './clientAuth.js';
 import PrivacyModal from './components/PrivacyModal.jsx';
 import AdminCabin from './pages/AdminCabin.jsx';
+import ClientCabinet from './components/ClientCabinet.jsx';
 import CookieBanner, { setCookie } from './components/CookieBanner.jsx';
+
+const formaClientAuth = createClientAuth({
+  prefix: 'forma',
+  demoSeed: {
+    name: 'Иван Петров',
+    email: 'client@forma-studio.ru',
+    phone: '+7 (926) 310-44-12',
+    password: 'client12345',
+    meta: {
+      favMaster: 'Артур Волков',
+      note: 'Классический фейд, эспрессо без сахара',
+      bookingCodes: ['FRM-1042']
+    }
+  }
+});
 
 export default function App() {
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
   const [secretAdminRoute, setSecretAdminRoute] = useState(false);
   const [view, setView] = useState('book'); // 'book' | 'my'
+  const [client, setClient] = useState(null);
 
   const [data, setData] = useState({ services: [], masters: [], busySlots: [], user: null });
   const [loading, setLoading] = useState(true);
@@ -78,8 +97,11 @@ export default function App() {
     setLoading(false);
   }
 
-  async function loadMyBookings() {
-    const codes = getMySavedCodes();
+  async function loadMyBookings(activeClient = client) {
+    const profileCodes = Array.isArray(activeClient?.meta?.bookingCodes)
+      ? activeClient.meta.bookingCodes
+      : [];
+    const codes = Array.from(new Set([...profileCodes, ...getMySavedCodes()]));
     if (!codes.length) {
       setMyBookings([]);
       return;
@@ -95,11 +117,29 @@ export default function App() {
   useEffect(() => {
     checkSecretHash();
     loadBootstrap().catch(() => setLoading(false));
-    loadMyBookings().catch(() => {});
+    formaClientAuth
+      .me()
+      .then((res) => {
+        const nextClient = res.client || null;
+        setClient(nextClient);
+        return loadMyBookings(nextClient);
+      })
+      .catch(() => loadMyBookings(null).catch(() => {}));
     const onHash = () => checkSecretHash();
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
+
+  useEffect(() => {
+    if (!client) return;
+    setClientName(client.name || '');
+    setClientPhone(client.phone || '');
+    if (client.meta?.note !== undefined) setComment(client.meta.note || '');
+    if (client.meta?.favMaster && data.masters.length) {
+      const m = data.masters.find((item) => item.name === client.meta.favMaster);
+      if (m) setSelectedMasterId(String(m.id));
+    }
+  }, [client, data.masters]);
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -170,13 +210,25 @@ export default function App() {
       if (res.booking?.code) {
         saveMyBookingCode(res.booking.code);
         setConfirmedBooking(res.booking);
+        if (client) {
+          const updated = await formaClientAuth
+            .appendCode('bookingCodes', res.booking.code)
+            .catch(() => null);
+          if (updated) {
+            setClient(updated);
+            await loadMyBookings(updated);
+          } else {
+            await loadMyBookings(client);
+          }
+        } else {
+          await loadMyBookings(null);
+        }
       }
       if (res.busySlots) {
         setData((prev) => ({ ...prev, busySlots: res.busySlots }));
       } else {
         await loadBootstrap();
       }
-      await loadMyBookings();
       setSelectedTime('');
       setComment('');
     } catch (err) {
@@ -255,10 +307,11 @@ export default function App() {
                 className={`nav__link ${view === 'my' ? 'is-active' : ''}`}
                 onClick={() => {
                   setView('my');
-                  loadMyBookings().catch(() => {});
+                  loadMyBookings(client).catch(() => {});
                 }}
               >
-                Мои визиты ({myBookings.filter((b) => b.status !== 'cancelled').length})
+                <User size={14} style={{ verticalAlign: 'middle', marginRight: 5 }} />
+                Личный кабинет{myBookings.filter((b) => b.status !== 'cancelled').length > 0 ? ` (${myBookings.filter((b) => b.status !== 'cancelled').length})` : ''}
               </button>
             </nav>
           )}
@@ -288,97 +341,28 @@ export default function App() {
             onBackHome={exitAdminRoute}
           />
         ) : view === 'my' ? (
-          <section className="section">
-            <div className="container">
-              <div className="section-head">
-                <div>
-                  <span className="eyebrow">Ваши визиты</span>
-                  <h1 className="section-title">Мои записи в студию</h1>
-                </div>
-                <button type="button" className="btn btn--primary btn--sm" onClick={() => setView('book')}>
-                  + Новая запись
-                </button>
-              </div>
-
-              {myBookings.length === 0 ? (
-                <div className="panel">
-                  <p style={{ color: 'var(--text-muted)' }}>У вас пока нет активных записей в этом браузере.</p>
-                </div>
-              ) : (
-                <div className="admin-list">
-                  {myBookings.map((b) => {
-                    const st = BOOKING_STATUS[b.status] || BOOKING_STATUS.pending;
-                    return (
-                      <div key={b.code} className="panel my-booking-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                              <strong className="mono">{b.code}</strong>
-                              <span className={`status-pill ${st.cls}`}>{st.label}</span>
-                            </div>
-                            <h3 style={{ fontSize: '1.1rem', marginTop: 6 }}>{b.serviceName} · <span className="mono">{formatRub(b.price)}</span></h3>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 4 }}>
-                              Мастер: <strong>{b.masterName}</strong> · <span className="mono">{b.date} в {b.time}</span>
-                            </p>
-                          </div>
-
-                          {b.status !== 'cancelled' && b.status !== 'completed' && (
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                              <button
-                                type="button"
-                                className="btn btn--outline btn--sm"
-                                onClick={() => {
-                                  setRescheduleTarget(b);
-                                  setReschedDate(dates[0].iso);
-                                  setReschedTime('');
-                                }}
-                              >
-                                <RefreshCw size={14} /> Перенести
-                              </button>
-                              <button type="button" className="btn btn--danger btn--sm" onClick={() => handleCancelBooking(b.code)}>
-                                <XCircle size={14} /> Отменить
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {rescheduleTarget?.code === b.code && (
-                          <div className="reschedule-box">
-                            <div className="date-strip">
-                              {dates.map((d) => (
-                                <button key={d.iso} type="button" className={`date-pill ${reschedDate === d.iso ? 'is-active' : ''}`} onClick={() => { setReschedDate(d.iso); setReschedTime(''); }}>
-                                  <span>{d.short}</span>
-                                  <small className="mono">{d.sub}</small>
-                                </button>
-                              ))}
-                            </div>
-                            <div className="slots-grid" style={{ marginTop: 10 }}>
-                              {TIME_SLOTS.map((t) => {
-                                const free = getSlotAvailability(reschedDate, t, b.masterId).free;
-                                return (
-                                  <button key={t} type="button" disabled={!free} className={`slot-pill ${reschedTime === t ? 'is-active' : ''}`} onClick={() => setReschedTime(t)}>
-                                    {t}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                              <button type="button" className="btn btn--primary btn--sm" disabled={!reschedTime} onClick={handleRescheduleSubmit}>
-                                Подтвердить перенос
-                              </button>
-                              <button type="button" className="btn btn--ghost btn--sm" onClick={() => setRescheduleTarget(null)}>
-                                Отмена
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
+          <ClientCabinet
+            client={client}
+            clientAuth={formaClientAuth}
+            masters={data.masters}
+            myBookings={myBookings}
+            dates={dates}
+            rescheduleTarget={rescheduleTarget}
+            reschedDate={reschedDate}
+            reschedTime={reschedTime}
+            getSlotAvailability={getSlotAvailability}
+            onSetRescheduleTarget={setRescheduleTarget}
+            onSetReschedDate={setReschedDate}
+            onSetReschedTime={setReschedTime}
+            onRescheduleSubmit={handleRescheduleSubmit}
+            onCancelBooking={handleCancelBooking}
+            onClientChange={(nextClient) => {
+              setClient(nextClient);
+              loadMyBookings(nextClient).catch(() => {});
+            }}
+            onBackToBooking={() => setView('book')}
+            onOpenPrivacy={() => setShowPrivacy(true)}
+          />
         ) : (
           <>
             <section className="hero">
@@ -544,8 +528,8 @@ export default function App() {
                         <span className="mono">{confirmedBooking.date} в {confirmedBooking.time}</span>
                       </p>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                        <button type="button" className="btn btn--primary btn--sm" onClick={() => setView('my')}>
-                          Перейти в «Мои записи»
+                        <button type="button" className="btn btn--primary btn--sm" onClick={() => { setView('my'); loadMyBookings(client).catch(() => {}); }}>
+                          Открыть личный кабинет
                         </button>
                         <button type="button" className="btn btn--outline btn--sm" onClick={() => setConfirmedBooking(null)}>
                           Записать ещё
