@@ -7,8 +7,6 @@ import {
   Clock,
   Star,
   CheckCircle2,
-  Menu,
-  X,
   SlidersHorizontal,
   RefreshCw,
   XCircle
@@ -34,7 +32,6 @@ import CookieBanner, { setCookie } from './components/CookieBanner.jsx';
 export default function App() {
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
   const [secretAdminRoute, setSecretAdminRoute] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [view, setView] = useState('book'); // 'book' | 'my'
 
   const [data, setData] = useState({ services: [], masters: [], busySlots: [], user: null });
@@ -238,31 +235,30 @@ export default function App() {
             <span className="brand__icon" aria-hidden="true">
               <Scissors size={16} />
             </span>
-            <span>ФОРМА</span>
+            <span className="brand__text">
+              <span>ФОРМА</span>
+              <small>Мужское ателье</small>
+            </span>
           </a>
 
           {!secretAdminRoute && (
-            <nav className={`nav ${mobileNavOpen ? 'is-open' : ''}`} aria-label="Навигация">
+            <nav className="nav atelier-tabs" aria-label="Навигация">
               <button
                 type="button"
                 className={`nav__link ${view === 'book' ? 'is-active' : ''}`}
-                onClick={() => {
-                  setView('book');
-                  setMobileNavOpen(false);
-                }}
+                onClick={() => setView('book')}
               >
-                Онлайн-запись
+                Запись на визит
               </button>
               <button
                 type="button"
                 className={`nav__link ${view === 'my' ? 'is-active' : ''}`}
                 onClick={() => {
                   setView('my');
-                  setMobileNavOpen(false);
                   loadMyBookings().catch(() => {});
                 }}
               >
-                Мои записи ({myBookings.filter((b) => b.status !== 'cancelled').length})
+                Мои визиты ({myBookings.filter((b) => b.status !== 'cancelled').length})
               </button>
             </nav>
           )}
@@ -271,16 +267,6 @@ export default function App() {
             <button type="button" className="icon-btn" onClick={toggleTheme} aria-label="Сменить тему">
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            {!secretAdminRoute && (
-              <button
-                type="button"
-                className="icon-btn mobile-menu-btn"
-                onClick={() => setMobileNavOpen((o) => !o)}
-                aria-label="Меню"
-              >
-                {mobileNavOpen ? <X size={16} /> : <Menu size={16} />}
-              </button>
-            )}
             {(secretAdminRoute || (!isStaticHost() && data.user)) && (
               <button type="button" className="btn btn--outline btn--sm" onClick={() => exitAdminRoute()}>
                 <SlidersHorizontal size={14} /> Запись
@@ -426,7 +412,7 @@ export default function App() {
                   {/* ШАГ 1: УСЛУГА */}
                   <div className="step-block">
                     <div className="step-head">
-                      <span className="step-num mono">01</span>
+                      <span className="step-num mono">I</span>
                       <h2>Выберите услугу</h2>
                     </div>
 
@@ -462,7 +448,7 @@ export default function App() {
                   {/* ШАГ 2: МАСТЕР */}
                   <div className="step-block">
                     <div className="step-head">
-                      <span className="step-num mono">02</span>
+                      <span className="step-num mono">II</span>
                       <h2>Выберите мастера</h2>
                     </div>
 
@@ -502,7 +488,7 @@ export default function App() {
                   {/* ШАГ 3: ДАТА И СЛОТЫ */}
                   <div className="step-block">
                     <div className="step-head">
-                      <span className="step-num mono">03</span>
+                      <span className="step-num mono">III</span>
                       <h2>Дата и свободное время</h2>
                     </div>
 
