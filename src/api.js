@@ -2,8 +2,8 @@ const SECRET_ROUTE_SALT = 'forma-route-v1:';
 const SECRET_ROUTE_HASH = '202dd1371cc082620c0752b841f1b48a78c45429e8249883edfda2ac0545210f';
 
 const ADMIN_EMAIL = 'admin@forma-studio.ru';
-const ADMIN_PASS_SALT = 'forma-adm-v1:';
-const ADMIN_PASS_HASH = 'cdb007dd2d0f96bed3cb48925b5b8fb3ddeee2c78b19246c8859cd1012e1aed4';
+const ADMIN_PASS_SALT = 'forma-adm-v2:';
+const ADMIN_PASS_HASH = 'aa74e436b151558296505e8cba52a0b521ec37a3a009257623a2561a067d8c09';
 
 const STATIC_DB_KEY = 'forma_static_db_v1';
 const STATIC_SESSION_KEY = 'forma_static_admin_v1';

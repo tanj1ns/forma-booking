@@ -94,14 +94,16 @@ function initDatabase() {
 function seed(db) {
   const now = new Date().toISOString();
 
+  const DEFAULT_ADMIN_SCRYPT =
+    '259894d4a72268f1cfe7d8ed59827bb4:e5ef2288dfa5e1859802d1dedbb5effd6d3c882a02c297b5ac9f856362a6ce93434c17b210f8868892d88b7a39511cf29ce776179f2d2f999ae815376308f0e4';
   const userCount = db.prepare('SELECT COUNT(*) AS cnt FROM users').get().cnt;
   if (userCount === 0) {
     const email = (process.env.ADMIN_EMAIL || 'admin@forma-studio.ru').trim().toLowerCase();
-    const pass = process.env.ADMIN_PASSWORD || 'Frm!8132e6abf27';
+    const passHash = process.env.ADMIN_PASSWORD ? hashPassword(process.env.ADMIN_PASSWORD) : DEFAULT_ADMIN_SCRYPT;
     db.prepare('INSERT INTO users (name, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)').run(
       'Администратор ФОРМА',
       email,
-      hashPassword(pass),
+      passHash,
       'admin',
       now
     );
