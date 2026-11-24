@@ -29,6 +29,7 @@ import {
 } from './api.js';
 import PrivacyModal from './components/PrivacyModal.jsx';
 import AdminCabin from './pages/AdminCabin.jsx';
+import CookieBanner, { setCookie } from './components/CookieBanner.jsx';
 
 export default function App() {
   const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'dark');
@@ -54,6 +55,7 @@ export default function App() {
   const [websiteTrap, setWebsiteTrap] = useState('');
   const [consent, setConsent] = useState(true);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [cookieForceOpen, setCookieForceOpen] = useState(false);
   const [formOpenedAt] = useState(() => Date.now());
   const [submitting, setSubmitting] = useState(false);
   const [formMsg, setFormMsg] = useState({ type: '', text: '' });
@@ -106,7 +108,10 @@ export default function App() {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('forma_theme', next);
+    setCookie('forma_theme', next);
+    try {
+      localStorage.setItem('forma_theme', next);
+    } catch {}
   }
 
   const busySet = useMemo(() => {
@@ -630,11 +635,24 @@ export default function App() {
       <footer className="footer">
         <div className="container footer__inner">
           <span>© {new Date().getFullYear()} Студия «ФОРМА» · г. Москва, ул. Покровка, д. 19</span>
-          <span>Онлайн-запись · React + Node.js + SQLite</span>
+          <span className="footer__meta">
+            <span>Онлайн-запись · React + Node.js + SQLite</span>
+            <span aria-hidden="true">·</span>
+            <button type="button" className="link-inline" onClick={() => setShowPrivacy(true)}>Политика cookie</button>
+            <span aria-hidden="true">·</span>
+            <button type="button" className="link-inline" onClick={() => setCookieForceOpen(true)}>Настройки cookie</button>
+          </span>
         </div>
       </footer>
 
       {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
+
+      <CookieBanner
+        prefix="forma"
+        forceOpen={cookieForceOpen}
+        onCloseForce={() => setCookieForceOpen(false)}
+        onOpenPrivacy={() => setShowPrivacy(true)}
+      />
     </>
   );
 }

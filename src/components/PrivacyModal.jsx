@@ -23,6 +23,9 @@ export default function PrivacyModal({ onClose }) {
           Заполняя форму записи в студии «ФОРМА», вы даёте согласие на обработку имени и номера телефона исключительно для бронирования времени визита, напоминаний и обратной связи.
         </p>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+          Сайт также использует cookie (<span className="mono">SameSite=Lax</span>): техническую <span className="mono">HttpOnly</span>-сессию <span className="mono">forma_sid</span>, выбранную тему <span className="mono">forma_theme</span>, согласие <span className="mono">forma_cookie_consent</span> и необязательный cookie <span className="mono">forma_prefs</span> (удаляется при выборе «Только необходимые»).
+        </p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6 }}>
           Персональные данные не передаются третьим лицам и могут быть удалены по вашему запросу.
         </p>
       </div>
